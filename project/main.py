@@ -1,3 +1,3 @@
 import rust
 
-print(rust.sum_as_string(10, 10))
+rust.run_javascript("""console.log("e")""")

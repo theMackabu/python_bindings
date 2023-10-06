@@ -19,5 +19,10 @@ script = [
 ]
 
 [tasks.dev]
-depends = ["build"]
+script = [
+   "maid build -q", 
+   "%{env.python_path} project/main.py"
+]
+
+[tasks.run]
 script = "%{env.python_path} project/main.py"
