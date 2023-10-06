@@ -1,0 +1,11 @@
+[package]
+name = "python_bindings"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "python_bindings"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = "0.19.0"

@@ -1,0 +1,23 @@
+[env]
+python_path = "/opt/homebrew/bin/python3"
+
+[project]
+name = "python_bindings"
+version = "0.1.0"
+
+[tasks.clean]
+script = [
+   "rimraf project/bin",
+   "mkdir project/bin"
+]
+
+[tasks.build]
+script = [
+   "maid clean -q",
+   "cargo build --release", 
+   "mv target/release/libpython_bindings.dylib project/bin/rust.so"
+]
+
+[tasks.dev]
+depends = ["build"]
+script = "%{env.python_path} project/main.py"
