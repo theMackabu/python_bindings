@@ -1,5 +1,6 @@
 mod runtime;
 use pyo3::prelude::*;
+use std::io::Write;
 
 #[pyfunction]
 fn run_javascript(script: String) {
@@ -9,9 +10,22 @@ fn run_javascript(script: String) {
     }
 }
 
+#[pyfunction]
+fn fetch(url: String) -> PyResult<String> {
+    let client = reqwest::blocking::Client::new();
+    let body = client.get(url).send().unwrap();
+
+    Ok(body.text().unwrap())
+}
+
+#[pyfunction]
+fn stdout(arg: String) { write!(&mut std::io::stdout(), "{arg}").expect("Unable to write to stderr (file handle closed?)"); }
+
 #[pymodule]
 #[pyo3(name = "rust")]
 fn python_bindings(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(run_javascript, m)?)?;
+    m.add_function(wrap_pyfunction!(fetch, m)?)?;
+    m.add_function(wrap_pyfunction!(stdout, m)?)?;
     Ok(())
 }

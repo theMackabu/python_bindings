@@ -1,33 +1,35 @@
 use deno_ast::{MediaType, ParseParams, SourceTextInfo};
-use deno_core::{error::AnyError, futures::FutureExt, op, v8, Extension, Op, RuntimeOptions, Snapshot};
+use deno_core::{error::AnyError, futures::FutureExt, op2, resolve_path, Extension, Op, RuntimeOptions, Snapshot};
 use std::rc::Rc;
 
-#[op]
-async fn op_read_file(path: String) -> Result<String, AnyError> {
+#[op2(async)]
+#[string]
+async fn op_read_file(#[string] path: String) -> Result<String, AnyError> {
     let contents = tokio::fs::read_to_string(path).await?;
     Ok(contents)
 }
 
-#[op]
-async fn op_write_file(path: String, contents: String) -> Result<(), AnyError> {
+#[op2(async)]
+async fn op_write_file(#[string] path: String, #[string] contents: String) -> Result<(), AnyError> {
     tokio::fs::write(path, contents).await?;
     Ok(())
 }
 
-#[op]
-async fn op_fetch(url: String) -> Result<String, AnyError> {
+#[op2(async)]
+#[string]
+async fn op_fetch(#[string] url: String) -> Result<String, AnyError> {
     let body = reqwest::get(url).await?.text().await?;
     Ok(body)
 }
 
-#[op]
-async fn op_set_timeout(delay: u64) -> Result<(), AnyError> {
+#[op2(async)]
+async fn op_set_timeout(#[number] delay: u64) -> Result<(), AnyError> {
     tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
     Ok(())
 }
 
-#[op]
-fn op_remove_file(path: String) -> Result<(), AnyError> {
+#[op2(fast)]
+fn op_remove_file(#[string] path: String) -> Result<(), AnyError> {
     std::fs::remove_file(path)?;
     Ok(())
 }
@@ -76,7 +78,7 @@ impl deno_core::ModuleLoader for TsModuleLoader {
 
 static RUNTIME_SNAPSHOT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/JS_SNAPSHOT.bin"));
 
-pub async fn run_js(code: &'static str) -> Result<v8::Global<v8::Value>, AnyError> {
+pub async fn run_js(code: &'static str) -> Result<(), AnyError> {
     let extension = Extension {
         name: "js",
         ops: std::borrow::Cow::Borrowed(&[op_read_file::DECL, op_write_file::DECL, op_remove_file::DECL, op_fetch::DECL, op_set_timeout::DECL]),
@@ -90,5 +92,10 @@ pub async fn run_js(code: &'static str) -> Result<v8::Global<v8::Value>, AnyErro
         ..Default::default()
     });
 
-    context.execute_script("<python>", deno_core::FastString::Static(code))
+    let main_module = resolve_path("<python>", &std::env::current_dir()?)?;
+    let mod_id = context.load_main_module(&main_module, Some(deno_core::FastString::Static(code))).await?;
+    let result = context.mod_evaluate(mod_id);
+
+    context.run_event_loop(false).await?;
+    result.await?
 }
