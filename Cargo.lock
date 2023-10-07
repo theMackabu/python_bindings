@@ -1269,6 +1269,7 @@ dependencies = [
  "deno_core",
  "pyo3",
  "reqwest",
+ "serde_v8",
  "tokio",
 ]
 

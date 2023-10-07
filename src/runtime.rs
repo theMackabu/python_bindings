@@ -99,3 +99,24 @@ pub async fn run_js(code: &'static str) -> Result<(), AnyError> {
     context.run_event_loop(false).await?;
     result.await?
 }
+
+pub fn eval_js(code: &'static str) -> Result<String, AnyError> {
+    let extension = Extension {
+        name: "js",
+        ops: std::borrow::Cow::Borrowed(&[op_read_file::DECL, op_write_file::DECL, op_remove_file::DECL, op_fetch::DECL, op_set_timeout::DECL]),
+        ..Default::default()
+    };
+
+    let mut context = deno_core::JsRuntime::new(RuntimeOptions {
+        module_loader: Some(Rc::new(TsModuleLoader)),
+        startup_snapshot: Some(Snapshot::Static(RUNTIME_SNAPSHOT)),
+        extensions: vec![extension],
+        ..Default::default()
+    });
+
+    let global = context.execute_script("<anon>", deno_core::FastString::Static(code)).unwrap();
+    let mut scope = context.handle_scope();
+    let value = global.open(&mut scope);
+
+    Ok(value.to_rust_string_lossy(&mut scope))
+}
