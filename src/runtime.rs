@@ -1,5 +1,8 @@
 use deno_ast::{MediaType, ParseParams, SourceTextInfo};
-use deno_core::{error::AnyError, futures::FutureExt, op2, resolve_path, Extension, Op, RuntimeOptions, Snapshot};
+use deno_core::{
+    error::AnyError, futures::FutureExt, op2, resolve_path, Extension, ModuleCodeString, ModuleSource, ModuleSourceCode, ModuleSpecifier, Op, PollEventLoopOptions, RequestedModuleType,
+    RuntimeOptions, Snapshot,
+};
 use std::rc::Rc;
 
 #[op2(async)]
@@ -41,7 +44,9 @@ impl deno_core::ModuleLoader for TsModuleLoader {
         deno_core::resolve_import(specifier, referrer).map_err(|e| e.into())
     }
 
-    fn load(&self, module_specifier: &deno_core::ModuleSpecifier, _maybe_referrer: Option<&reqwest::Url>, _is_dyn_import: bool) -> std::pin::Pin<Box<deno_core::ModuleSourceFuture>> {
+    fn load(
+        &self, module_specifier: &ModuleSpecifier, _maybe_referrer: Option<&reqwest::Url>, _is_dyn_import: bool, _requested_module_type: RequestedModuleType,
+    ) -> std::pin::Pin<Box<deno_core::ModuleSourceFuture>> {
         let module_specifier = module_specifier.clone();
         async move {
             let path = module_specifier.to_file_path().unwrap();
@@ -69,7 +74,7 @@ impl deno_core::ModuleLoader for TsModuleLoader {
             } else {
                 code
             };
-            let module = deno_core::ModuleSource::new(module_type, deno_core::ModuleCode::from(code), &module_specifier);
+            let module = ModuleSource::new(module_type, ModuleSourceCode::String(ModuleCodeString::from(code)), &module_specifier);
             Ok(module)
         }
         .boxed_local()
@@ -96,8 +101,8 @@ pub async fn run_js(code: &'static str) -> Result<(), AnyError> {
     let mod_id = context.load_main_module(&main_module, Some(deno_core::FastString::Static(code))).await?;
     let result = context.mod_evaluate(mod_id);
 
-    context.run_event_loop(false).await?;
-    result.await?
+    context.run_event_loop(PollEventLoopOptions::default()).await?;
+    result.await
 }
 
 pub fn eval_js(code: &'static str) -> Result<String, AnyError> {
