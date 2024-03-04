@@ -1,7 +1,11 @@
+import importlib.util
+
 def __bootstrap__():
-    global __bootstrap__, __loader__, __file__
-    import sys, pkg_resources, imp
-    __file__ = pkg_resources.resource_filename(__name__, 'bin/rust.so')
-    __loader__ = None; del __bootstrap__, __loader__
-    imp.load_dynamic(__name__, __file__)
+    import sys, pkg_resources
+    file_path = pkg_resources.resource_filename(__name__, 'bin/rust.so')
+    spec = importlib.util.spec_from_file_location(__name__, file_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
 __bootstrap__()
