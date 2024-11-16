@@ -1,9 +1,9 @@
 [env]
-python_path = "/opt/homebrew/bin/python3"
+python_path = "python3"
 
 [project]
 name = "python_bindings"
-version = "0.1.0"
+version = "0.2.0"
 
 [tasks.clean]
 script = [

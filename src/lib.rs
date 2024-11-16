@@ -29,7 +29,7 @@ fn run_javascript(script: String) {
 
 #[pymodule]
 #[pyo3(name = "rust")]
-fn python_bindings(_py: Python, m: &PyModule) -> PyResult<()> {
+fn python_bindings(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(stdout, m)?)?;
     m.add_function(wrap_pyfunction!(stdout_ln, m)?)?;
     m.add_function(wrap_pyfunction!(fetch, m)?)?;
